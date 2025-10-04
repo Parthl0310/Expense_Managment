@@ -12,10 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/api";
-import { mockUsers, mockCompany, mockApprovalRules, expenseCategories, userRoles } from "@/data/mockData";
+import { expenseCategories, userRoles } from "@/data/mockData";
 import { Plus, Edit, Trash2, Users, Settings, Shield, Loader2 } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 
 interface Approver {
   id: number;
@@ -55,7 +53,7 @@ const AdminEnhanced = () => {
   ]);
 
   // User Management State
-  const [users, setUsers] = useState<User[]>(mockUsers || []);
+  const [users, setUsers] = useState<User[]>([]);
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
@@ -72,6 +70,7 @@ const AdminEnhanced = () => {
   });
 
   const [availableManagers] = useState(["sarah", "john", "mitchell"]);
+  const [approvalRules, setApprovalRules] = useState<any[]>([]);
 
   const toggleApproverRequired = (id: number) => {
     setApprovers(approvers.map(approver =>
@@ -80,6 +79,33 @@ const AdminEnhanced = () => {
         : approver
     ));
   };
+
+  // Fetch all admin data from backend on mount
+  useEffect(() => {
+    const fetchAll = async () => {
+      setLoading(true);
+      try {
+        // Fetch users
+        const usersRes = await apiService.getCompanyEmployees();
+        setUsers((usersRes.data as { employees: User[] })?.employees || []);
+        // Fetch company settings
+        const companyRes = await apiService.getCompanyDetails();
+        setCompanySettings((companyRes.data as { settings: any })?.settings || {
+          approvalThreshold: 1000,
+          requireManagerApproval: true,
+          autoApprovalLimit: 100,
+        });
+        // Fetch approval rules
+        const rulesRes = await apiService.getApprovalRules();
+        setApprovalRules((rulesRes.data as any[]) || []);
+      } catch (error) {
+        toast({ title: "Error", description: "Failed to fetch admin data", variant: "destructive" });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
+  }, []);
 
   const handleSaveApprovalRule = async () => {
     try {
@@ -104,9 +130,7 @@ const AdminEnhanced = () => {
           logic: "PERCENTAGE_OR_SPECIFIC"
         }
       };
-
-      // In a real app, this would call the API
-      // await apiService.createApprovalRule(ruleData);
+      await apiService.createApprovalRule(ruleData);
       
       toast({
         title: "Success",
@@ -133,20 +157,10 @@ const AdminEnhanced = () => {
         role: newUser.role,
         managerId: newUser.managerId || undefined
       };
-
-      // In a real app, this would call the API
-      // await apiService.createUser(userData);
-      
-      const createdUser: User = {
-        _id: Date.now().toString(),
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        isActive: true,
-        managerId: newUser.managerId || undefined
-      };
-
-      setUsers([...users, createdUser]);
+      await apiService.createUser(userData);
+      // Refetch users
+      const usersRes = await apiService.getCompanyEmployees();
+      setUsers((usersRes.data as { employees: User[] })?.employees || []);
       setNewUser({ name: "", email: "", password: "", role: "EMPLOYEE", managerId: "" });
       
       toast({
@@ -167,8 +181,7 @@ const AdminEnhanced = () => {
   const handleUpdateCompanySettings = async () => {
     try {
       setLoading(true);
-      // In a real app, this would call the API
-      // await apiService.updateCompanySettings(companySettings);
+      await apiService.updateCompanySettings(companySettings);
       
       toast({
         title: "Success",
@@ -188,10 +201,10 @@ const AdminEnhanced = () => {
   const handleDeactivateUser = async (userId: string) => {
     try {
       setLoading(true);
-      // In a real app, this would call the API
-      // await apiService.deactivateUser(userId);
-      
-      setUsers(users.map(u => u._id === userId ? { ...u, isActive: false } : u));
+      await apiService.deactivateUser(userId);
+      // Refetch users
+      const usersRes = await apiService.getCompanyEmployees();
+      setUsers((usersRes.data as { employees: User[] })?.employees || []);
       
       toast({
         title: "Success",
@@ -221,8 +234,6 @@ const AdminEnhanced = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
-
       <section className="py-20 px-4 bg-background flex-1">
         <div className="container mx-auto max-w-7xl">
           <div className="flex items-center justify-between mb-8">
@@ -407,6 +418,30 @@ const AdminEnhanced = () => {
                   </div>
                 </CardContent>
               </Card>
+              {/* Approval Rules List */}
+              {approvalRules.length > 0 && (
+                <div className="mt-8">
+                  <h3 className="text-lg font-semibold mb-4">Existing Approval Rules</h3>
+                  <div className="space-y-4">
+                    {approvalRules.map((rule, idx) => (
+                      <Card key={rule._id || idx} className="border border-muted p-4">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                          <div>
+                            <div className="font-bold">{rule.name}</div>
+                            <div className="text-sm text-muted-foreground">{rule.description}</div>
+                            <div className="text-xs mt-1">Type: {rule.approvalFlow?.type || 'N/A'}</div>
+                          </div>
+                          <div className="flex flex-col gap-1 text-xs">
+                            <div>Approvers: {Array.isArray(rule.approvalFlow?.approvers) ? rule.approvalFlow.approvers.length : 0}</div>
+                            <div>Threshold: {rule.conditions?.amountThreshold}</div>
+                            <div>Categories: {Array.isArray(rule.conditions?.categories) ? rule.conditions.categories.join(', ') : ''}</div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             {/* User Management Tab */}
@@ -625,7 +660,7 @@ const AdminEnhanced = () => {
                     <CardTitle className="text-lg">Approval Rules</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{mockApprovalRules.length}</div>
+                    <div className="text-3xl font-bold">{approvalRules.length}</div>
                     <p className="text-sm text-muted-foreground">Configured rules</p>
                   </CardContent>
                 </Card>
@@ -635,7 +670,6 @@ const AdminEnhanced = () => {
         </div>
       </section>
 
-      <Footer />
     </div>
   );
 };

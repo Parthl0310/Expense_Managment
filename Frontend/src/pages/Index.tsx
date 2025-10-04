@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, Users, TrendingUp, Shield, Zap, Globe } from "lucide-react";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import heroImage from "@/assets/hero-image.jpg";
 
@@ -51,8 +50,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
-      
       {/* Hero Section */}
       <section className="gradient-hero py-20 px-4">
         <div className="container mx-auto">

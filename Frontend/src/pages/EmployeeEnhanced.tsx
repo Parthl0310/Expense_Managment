@@ -15,7 +15,6 @@ import { apiService } from "@/services/api";
 import { mockExpenses, expenseCategories, expenseStatuses } from "@/data/mockData";
 import { Upload, Camera, Loader2, Plus, Eye, Send, DollarSign, Calendar, FileText, User, Lock, CheckCircle, XCircle } from "lucide-react";
 import Tesseract from "tesseract.js";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 interface Expense {
@@ -153,87 +152,77 @@ const EmployeeEnhanced = () => {
     }
   };
 
+  // Replace all mock/local state updates for expenses with real API calls:
+
+  // 1. Fetch expenses from backend on mount
+  useEffect(() => {
+    const fetchExpenses = async () => {
+      setLoading(true);
+      try {
+        const response = await apiService.getMyExpenses();
+        setExpenses((response.data as { expenses: Expense[] })?.expenses || []);
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch expenses',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (user) fetchExpenses();
+  }, [user]);
+
+  // 2. Create expense (call backend, not just local state)
   const handleCreateExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
-
-      const expenseData = {
-        description: newExpense.description,
-        category: newExpense.category,
-        totalAmount: `${newExpense.amount} ${newExpense.currency}`,
-        expenseDate: newExpense.date,
-        paidBy: user?._id || "",
-        remarks: newExpense.remarks,
-      };
-
-      // In a real app, this would call the API
-      // const response = await apiService.createExpense(expenseData);
-
-      const createdExpense: Expense = {
-        _id: Date.now().toString(),
-        description: newExpense.description,
-        category: newExpense.category,
-        totalAmount: `${newExpense.amount} ${newExpense.currency}`,
-        amountInCompanyCurrency: parseFloat(newExpense.amount) * 83, // Mock conversion rate
-        originalCurrency: newExpense.currency,
-        exchangeRate: 83,
-        expenseDate: newExpense.date,
-        status: 'DRAFT',
-        receipts: [],
-        userId: {
-          _id: user?._id || "",
-          name: user?.name || "",
-          email: user?.email || "",
-        },
-        paidBy: {
-          _id: user?._id || "",
-          name: user?.name || "",
-          email: user?.email || "",
-        },
-        remarks: newExpense.remarks,
-        createdAt: new Date().toISOString(),
-      };
-
-      setExpenses([...expenses, createdExpense]);
-      setNewExpense({ description: "", date: "", category: "", paidBy: "", remarks: "", amount: "", currency: "USD" });
+      const formData = new FormData();
+      formData.append('description', newExpense.description);
+      formData.append('category', newExpense.category);
+      formData.append('totalAmount', `${newExpense.amount} ${newExpense.currency}`);
+      formData.append('expenseDate', newExpense.date);
+      formData.append('paidBy', user?._id || '');
+      formData.append('remarks', newExpense.remarks);
+      // TODO: If you support receipts, append them here as well
+      const response = await apiService.createExpense(formData);
+      setExpenses([...expenses, response.data as Expense]);
+      setNewExpense({ description: '', date: '', category: '', paidBy: '', remarks: '', amount: '', currency: 'USD' });
       setShowCreateDialog(false);
-
       toast({
-        title: "Success",
-        description: "Expense created successfully",
+        title: 'Success',
+        description: 'Expense created successfully',
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to create expense",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to create expense',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
   };
 
+  // 3. Submit expense for approval (call backend)
   const handleSubmitForApproval = async (expenseId: string) => {
     try {
       setLoading(true);
-
-      // In a real app, this would call the API
-      // await apiService.submitExpenseForApproval(expenseId);
-
-      setExpenses(expenses.map(exp =>
-        exp._id === expenseId ? { ...exp, status: 'WAITING_APPROVAL' as const } : exp
-      ));
-
+      await apiService.submitExpenseForApproval(expenseId);
+      // Refetch expenses to get updated status
+      const response = await apiService.getMyExpenses();
+      setExpenses((response.data as { expenses: Expense[] })?.expenses || []);
       toast({
-        title: "Success",
-        description: "Expense submitted for approval",
+        title: 'Success',
+        description: 'Expense submitted for approval',
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to submit expense for approval",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to submit expense for approval',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -285,7 +274,7 @@ const EmployeeEnhanced = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      {/* Navbar is now handled by Layout */}
 
       <section className="py-20 px-4 bg-background flex-1">
         <div className="container mx-auto max-w-7xl">

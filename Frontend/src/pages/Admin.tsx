@@ -213,7 +213,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 type Approver = {
@@ -256,7 +255,7 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      {/* Navbar is now handled by the Layout component */}
 
       <section className="py-20 px-4 bg-background flex-1">
         <div className="container mx-auto max-w-7xl">

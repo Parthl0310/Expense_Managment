@@ -11,7 +11,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiService } from "@/services/api";
 import { mockApprovalRequests, mockExpenses } from "@/data/mockData";
 import { CheckCircle, XCircle, Eye, Clock, DollarSign, User, Calendar, FileText, Loader2 } from "lucide-react";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 interface Expense {
@@ -243,7 +242,7 @@ const ManagerEnhanced = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      {/* Navbar is now handled by Layout */}
 
       <section className="py-20 px-4 bg-background flex-1">
         <div className="container mx-auto max-w-7xl">

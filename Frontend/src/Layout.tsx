@@ -6,7 +6,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   // pages where Navbar should not appear
-  const hideNavbarOn = ["/login", "/signup", "/admin"];
+  const hideNavbarOn = ["/login", "/signup", "/admin", "/manager", "/employee"];
 
   return (
     <>

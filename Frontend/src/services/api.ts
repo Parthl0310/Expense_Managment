@@ -1,6 +1,6 @@
 import { toast } from '@/hooks/use-toast';
 
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 interface ApiResponse<T = any> {
   statuscode: number;
@@ -20,10 +20,14 @@ class ApiService {
   }
 
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
-    const data = await response.json();
-    
     if (!response.ok) {
-      const errorMessage = data.message || `HTTP error! status: ${response.status}`;
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const data = await response.json();
+        errorMessage = data.message || errorMessage;
+      } catch (parseError) {
+        // If we can't parse JSON, use the default error message
+      }
       toast({
         title: "API Error",
         description: errorMessage,
@@ -31,8 +35,7 @@ class ApiService {
       });
       throw new Error(errorMessage);
     }
-
-    return data;
+    return await response.json();
   }
 
   // User Management

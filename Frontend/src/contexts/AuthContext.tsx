@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import apiService from '@/services/api';
 
 interface User {
   _id: string;
@@ -72,32 +73,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/users/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await apiService.login(email, password);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
-
-      if (data.success) {
-        const { user: userData, accesstoken } = data.data;
+      if (response.success) {
+        const { user: userData, accesstoken } = response.data;
         setUser(userData);
         setToken(accesstoken);
         localStorage.setItem('accessToken', accesstoken);
         localStorage.setItem('user', JSON.stringify(userData));
-        
         toast({
           title: "Login Successful",
           description: `Welcome back, ${userData.name}!`,
         });
-
         // Redirect based on role
         switch (userData.role) {
           case 'ADMIN':
@@ -129,21 +116,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: RegisterData) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/users/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
-      }
-
-      if (data.success) {
+      const response = await apiService.register(userData);
+      if (response.success) {
         toast({
           title: "Registration Successful",
           description: "Account created successfully! Please login.",
